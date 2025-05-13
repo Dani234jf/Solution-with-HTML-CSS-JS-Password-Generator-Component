@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+
+  <title>Password generator app</title>
+
+</head>
+<body>
+  <main>
+    <section>
+      <h1>Password Generator</h1>
+      <div id="password-container">
+        <p class="bold" id="password" data-active="false">P4$5W0rD!</p>
+        <button id="copy-button" class="button-none"><img src="assets/copy-icon.png" alt=""></button>
+      </div>
+      <div id="settings-container">
+        <form>
+          <div>
+            <label>Character Length</label>
+            <p id="character-length-value">10</p>
+          </div>
+          <input type="range" id="character-length" max="20" step="1">
+          <div>
+            <label class="checkbox-container" for="include-uppercase">
+              <input type="checkbox" id="include-uppercase">
+              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path stroke-width="35" stroke="var(--color-dark-900)" d="M400-304 240-464l56-56 104 104 264-264 56 56-320 320Z"/></svg>
+            </label>
+            <label for="include-uppercase">Include Uppercase Letters</label>
+          </div>
+          <div>
+            <label class="checkbox-container" for="include-lowercase">
+              <input type="checkbox" id="include-lowercase">
+              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path  stroke-width="35" stroke="var(--color-dark-900)" d="M400-304 240-464l56-56 104 104 264-264 56 56-320 320Z"/></svg>
+            </label>
+            <label for="include-lowercase">Include Lowercase Letters</label>
+          </div>
+          <div>
+            <label class="checkbox-container" for="include-numbers">
+              <input type="checkbox" id="include-numbers">
+              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path  stroke-width="35" stroke="var(--color-dark-900)" d="M400-304 240-464l56-56 104 104 264-264 56 56-320 320Z"/></svg>
+            </label>
+            <label for="include-numbers">Include Numbers</label>
+          </div>
+          <div>
+            <label class="checkbox-container" for="include-symbols">
+              <input type="checkbox" id="include-symbols">
+              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path  stroke-width="35" stroke="var(--color-dark-900)" d="M400-304 240-464l56-56 104 104 264-264 56 56-320 320Z"/></svg>
+            </label>
+            <label for="include-symbols">Include Symbols</label>
+          </div>
+          <div class="password-strength">
+            <span>STRENGTH</span>
+            <span id="password-strength">MEDIUM</span>
+            <div class="strength-bars">
+              <span class="strength-bar" data-filled="true"></span>
+              <span class="strength-bar" data-filled="true"></span>
+              <span class="strength-bar" data-filled="false"></span>
+              <span class="strength-bar" data-filled="false"></span>
+            </div>
+          </div>
+          <button type="submit" id="generate-button">
+            <span>GENERATE</span>
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m560-240-56-58 142-142H160v-80h486L504-662l56-58 240 240-240 240Z"/></svg>
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <script>
+
+    const inputSliderCharacterLength = document.querySelector("#character-length");
+    const characterLengthValue = document.querySelector("#character-length-value");
+    const allInputsCheckboxes = Array.from(document.querySelectorAll(".checkbox-container")).map( value => value.querySelector("input") );
+    const copyButton = document.querySelector("#copy-button");
+    const submitButton = document.querySelector("#generate-button");
+    const outputPassword = document.querySelector("#password");
+
+    const strengthBars = Array.from(document.querySelectorAll(".strength-bar"));
+    const strengthText = document.querySelector("#password-strength");
+    
+    const form = document.querySelector("form");
+
+    const strengthTable = ["WEAK","MEDIUM","STRONG"];
+    const alphabetLetters = [
+      "a", "b", "c", "d", "e", "f", "g",
+      "h", "i", "j", "k", "l", "m", "n",
+      "o", "p", "q", "r", "s", "t", "u",
+      "v", "w", "x", "y", "z"
+    ];
+    const numbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    const symbols = ["!", "@", "#", "$", "%", "&", "*", "-", "=", "+", ";", ":", "\"", "<", ">", ",", "?", "/", "|"];
+    
+    let selected = [false,false,false,false];
+
+    
+    const UpdateBarsLevel = (level) => {
+      strengthBars.forEach( (element, i) => {
+        if ( (level - 1) >= i ) { element.dataset.filled = "true"; }
+        else { element.dataset.filled = "false"; }
+      });
+    };
+
+    const GetTextStrength = (level) => {
+      if ( level <= 1 ) { return strengthTable[0]; }
+      else if ( level >= 2 && level <= 3 ) { return strengthTable[1]; }
+      else { return strengthTable[2]; }
+    };
+
+    const UpdateSliderBackgroundAndDisplay = () => {
+      let value = Math.round((inputSliderCharacterLength.value / 2) * 10);
+      inputSliderCharacterLength.style.background = `linear-gradient(90deg, var(--color-green) ${value}%, var(--color-dark-900) ${value}%)`;
+      characterLengthValue.innerHTML = `${inputSliderCharacterLength.value}`;
+    };
+
+    const GetPasswordStrength = () => {
+      let strength = 0;
+      allInputsCheckboxes.forEach( (element) => {
+        if ( element.checked ) { strength++; }
+      });
+      return Math.round(strength * (Number(inputSliderCharacterLength.value) / 10));
+    };
+
+    const CopyPasswordToClipBoard = () => {
+      navigator.clipboard.writeText(outputPassword.textContent);
+    };
+
+    const UpdateSelectedParams = () => {
+      allInputsCheckboxes.forEach( (element,i) => {
+        selected[i] = element.checked;
+      });
+    };
+
+    const VerifyValidParms = (choices) => {
+      return (choices.length === 0 || Number(inputSliderCharacterLength.value) === 0); 
+    };
+
+    const GeneratePassword = () => {
+      let password = "";
+      let choices = [];
+
+      if (selected[0]) { choices.push(alphabetLetters.map( e => e.toUpperCase())); }
+      if (selected[1]) { choices.push(alphabetLetters); }
+      if (selected[2]) { choices.push(numbers); }
+      if (selected[3]) { choices.push(symbols); }
+
+      if (VerifyValidParms(choices)) { 
+        outputPassword.dataset.active = "false";
+        return "P4$5W0rD!";
+      }
+      else {
+        for(let i = 0; i < Number(inputSliderCharacterLength.value); i++) {
+          let rdIndexChoice = Math.ceil(Math.random() * choices.length-1);
+          let rdIndex = Math.ceil(Math.random() * choices[rdIndexChoice].length-1);
+          password += `${choices[rdIndexChoice][rdIndex]}`;
+        }
+      }
+      outputPassword.dataset.active = "true";
+      return password;
+    };
+
+
+    UpdateBarsLevel(0);
+    
+    inputSliderCharacterLength.addEventListener("input", () => {
+      UpdateSliderBackgroundAndDisplay();
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+    });
+
+    submitButton.addEventListener("click", () => {
+      UpdateSelectedParams();
+      let strength = GetPasswordStrength();
+      strengthText.innerHTML = `${GetTextStrength(strength)}`;
+      UpdateBarsLevel(strength);
+      outputPassword.textContent = GeneratePassword();
+    });
+
+    copyButton.addEventListener("click", () => {
+      CopyPasswordToClipBoard();
+    });
+
+    allInputsCheckboxes.forEach( (element) => {
+      element.addEventListener("keydown", (e) => {
+        if ( e.key === "Enter" || e.key === " " ) {
+          e.preventDefault();
+        }
+        if ( e.key === "Enter" ) {
+          element.checked = !element.checked;
+        }
+      });
+    });
+
+  </script>
+</body>
+</html>
+
+<style>
+    
+  :root {
+    --color-green: hsl(126, 100%, 82%);
+    --color-dark-900: hsl(252, 24%, 4%);
+    --color-dark-800: hsl(248, 15%, 11%);
+    --color-dark-700: hsl(248, 10%, 15%);
+    --color-dark-500: hsl(249, 8%, 53%);
+    --color-dark-100: hsl(248, 17%, 91%);
+    --color-yellow-bar: hsl(42, 91%, 68%);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    background-color: var(--color-dark-900);
+  }
+
+  html, main, body {
+    block-size: 100%;
+  }
+
+  body {
+    color: var(--color-dark-100);
+    font-family: "roboto mono";
+    font-weight: 400;
+  }
+
+  h1 {
+    color: var(--color-dark-500);
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  img {
+    display: block;
+    filter: invert(70%) sepia(40%) hue-rotate(90deg) saturate(4);
+    aspect-ratio: 1;
+    inline-size: 1.5rem;
+  }
+
+  section {
+    display: grid;
+    gap: 1rem;
+    inline-size: 100%;
+    max-inline-size: 30rem;
+    margin: 1rem;
+
+    & > div {
+      background-color: var(--color-dark-700);
+      padding: 1.5rem;
+    }
+  }
+
+  .checkbox-container {
+    position: relative;
+    cursor: pointer;
+    aspect-ratio: 1;
+    inline-size: 1.2rem;
+    margin-right: 1rem;
+    & > * {
+      position: absolute;
+    }
+    svg {
+      opacity: 0;
+      --translateToCenter: -0.16rem;
+      transform: translate(var(--translateToCenter),var(--translateToCenter));
+    }
+  }
+
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    aspect-ratio: 1;
+    inline-size: 1.2rem;
+    border: 0.1rem solid var(--color-dark-100);
+  }
+
+  input[type="checkbox"]:hover {
+    border: 0.1rem solid var(--color-green);
+  }
+
+  input[type="checkbox"]:checked{
+    border: none;
+    background: var(--color-green);
+  }
+
+  input[type="checkbox"]:checked + svg {
+    opacity: 1;
+  }
+
+  #character-length {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: linear-gradient(90deg, var(--color-green) 50%, var(--color-dark-900) 50%);
+    block-size: 0.5rem;
+  }
+
+  #character-length::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    background: var(--color-dark-100);
+    aspect-ratio: 1;
+    border-radius: 9999px;
+    inline-size: 1.5rem;
+  }
+
+  #character-length::-webkit-slider-thumb:hover {
+    cursor: pointer;
+    outline: 0.1rem solid var(--color-green);
+    background: var(--color-dark-900);
+  }
+
+  #character-length-value {
+    margin-left: auto;
+    font-size: 1.5rem;
+    color: var(--color-green);
+    font-family: "IBM Plex Mono";
+    font-weight: 500;
+  }
+
+  main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  form {
+    display: grid;
+    gap: 1.5rem;
+
+    & > div {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  button:not(.button-none) {
+    background-color: var(--color-green);
+    font-weight: 700;
+    font-size: inherit;
+    font-family: inherit;
+    color: var(--color-dark-700);
+    border: none;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    &:hover {
+      cursor: pointer;
+      background-color: transparent;
+      color: var(--color-green);
+      outline: 2px solid var(--color-green);
+      svg {
+        fill: var(--color-green);
+      }
+    }
+  }
+
+  .button-none {
+    appearance: none;
+    border: 0;
+    background: transparent;
+  }
+
+  #password[data-active="true"] + button:hover {
+    cursor: pointer;
+    filter: saturate(0) brightness(5);
+  }
+
+  .password-strength {
+    display: flex;
+    padding: 1rem;
+    background-color: var(--color-dark-800);
+    & > :first-child {
+      color: var(--color-dark-500);
+    }
+    & > :nth-child(2) {
+      margin-left: auto;
+    }
+    .strength-bars {
+      margin-left: 1rem;
+      display: flex;
+      gap: 0.4rem;
+    }
+  }
+
+  .strength-bar {
+    inline-size: 0.5rem;
+    block-size: 1.5rem;
+    border: 0.1rem solid var(--color-dark-100);
+  }
+
+  .strength-bar[data-filled="true"] {
+    border: none;
+    background-color: var(--color-yellow-bar);
+  }
+
+  .bold {
+    font-weight: 500;
+    font-size: 1.5rem;
+  }
+
+  #password-container {
+    display: flex;
+    align-items: center;
+    & > :last-child {
+      margin-left: auto;
+    }
+    & > :first-child[data-active="true"] {
+      color: var(--color-dark-100);
+    }
+    & > :first-child[data-active="false"] {
+      color: var(--color-dark-500);
+    }
+  }
+
+
+</style>
