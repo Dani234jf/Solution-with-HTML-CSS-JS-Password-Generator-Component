@@ -4,6 +4,8 @@
 
 Thanks for checking out this coding challenge.
 
+See the solution where: [Password Generator Component](https://dani234jf.github.io/Solution-with-HTML-CSS-JS-Password-Generator-Component/)
+
 ## Brief
 
 This app will be an excellent test of your HTML, CSS, and JS skills. You'll build custom form controls and use JavaScript to generate random passwords.
